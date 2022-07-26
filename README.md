@@ -2,24 +2,25 @@
 
 ### Usage
 
- Procedure:
+ ## Procedure:
+ 
  1. Place files whose names contain the following strings in folder "Data Sources".  
  Note that the actual file names will likely contain dates so the script pattern matches on the following strings. 
  
- newtemplate
- Empl_BC_Regions_Industry
- Industry_Profiles
- JobOpenings_BC_Regions_Industry
- BC_Unemployment_rate
+ -  newtemplate
+ -  Empl_BC_Regions_Industry
+ -  Industry_Profiles
+ -  JobOpenings_BC_Regions_Industry
+ -  BC_Unemployment_rate
  
  2. Ensure that folder "templates" contains the following files
  
- "3.3.1_WorkBC_Career_Profile_Data.xlsx" 
- "3.3.2_WorkBC_Industry_Profile.xlsx"               
- "3.3.3_WorkBC_Regional_Profile_Data.xlsx" 
- "3.4_WorkBC_Career_Compass.xlsx"                   
- "3.5_WorkBC_Career_Trek.xlsx"                      
- "3.7_WorkBC_Buildprint_Builder.xlsx"   
+ -  "3.3.1_WorkBC_Career_Profile_Data.xlsx" 
+ -  "3.3.2_WorkBC_Industry_Profile.xlsx"               
+ -  "3.3.3_WorkBC_Regional_Profile_Data.xlsx" 
+ -  "3.4_WorkBC_Career_Compass.xlsx"                   
+ -  "3.5_WorkBC_Career_Trek.xlsx"                      
+ -  "3.7_WorkBC_Buildprint_Builder.xlsx"   
 
  3. Source file "01_source_me.R"
 
