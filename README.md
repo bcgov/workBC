@@ -1,33 +1,33 @@
-<!-- 
-Add a project state badge
 
-See <https://github.com/BCDevExchange/Our-Project-Docs/blob/master/discussion/projectstates.md> 
-If you have bcgovr installed and you use RStudio, click the 'Insert BCDevex Badge' Addin.
--->
-
-boilerplate
-============================
 
 ### Usage
 
-Describe data being used (links), and how to run. Eg:
+ Procedure:
+ 1. Place files whose names contain the following strings in folder "Data Sources".  
+ Note that the actual file names will likely contain dates so the script pattern matches on the following strings. 
+ 
+ newtemplate
+ Empl_BC_Regions_Industry
+ Industry_Profiles
+ JobOpenings_BC_Regions_Industry
+ BC_Unemployment_rate
+ 
+ 2. Ensure that folder "templates" contains the following files
+ 
+ "3.3.1_WorkBC_Career_Profile_Data.xlsx" 
+ "3.3.2_WorkBC_Industry_Profile.xlsx"               
+ "3.3.3_WorkBC_Regional_Profile_Data.xlsx" 
+ "3.4_WorkBC_Career_Compass.xlsx"                   
+ "3.5_WorkBC_Career_Trek.xlsx"                      
+ "3.7_WorkBC_Buildprint_Builder.xlsx"   
 
-There are four core scripts that are required for the analysis, they need to be run in order:
+ 3. Source file "01_source_me.R"
 
--   01\_clean.R
--   02\_analysis.R
--   03\_visualize.R
--   04\_output.R
-
-#### Example
-
-This is a basic example which shows you how to solve a common problem:
-
-``` r
-## basic example code
-```
-
-### Project Status
+ Previous Richard's Notes:
+ The data for this project was downloaded from the 4CastViewer. The datasets for performing the analysis are in wide format.
+ We recently received a new 4CastViewer tool which allows you to download the data in long format.
+ Be aware that you'll have to change the dataset names in the "DATA CLEANING" section because it picks up the data source names in the "Data Sources" folder.
+ Check with WorkBC that all the templates are updated (Sr No and career job titles)
 
 ### Getting Help or Reporting an Issue
 
