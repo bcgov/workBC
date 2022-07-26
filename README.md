@@ -23,6 +23,8 @@
 
  3. Source file "01_source_me.R"
 
+4. Product can be found in folder "Send to WorkBC"
+
  Previous Richard's Notes:
  The data for this project was downloaded from the 4CastViewer. The datasets for performing the analysis are in wide format.
  We recently received a new 4CastViewer tool which allows you to download the data in long format.
