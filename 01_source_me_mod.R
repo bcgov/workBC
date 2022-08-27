@@ -60,7 +60,6 @@ lmo_work_bc_unemployment <- read_excel(here("Data Sources",
                                       skip=3)%>%
   clean_tbbl()
 
-
 # 3.3.1 CAREER PROFILE PROVINCIAL---------------
 #' 1. Suppression rule:
 #'   If the current year's employment is below 20, 
@@ -75,210 +74,93 @@ bc <- empl_bc_regions_industry%>%
                values_to = "value")%>%
   group_by(noc, description)%>%
   nest()%>%
-  mutate(cagrs = map(data, get_cagrs))%>%
-  unnest(cagrs)
-
-
-
-
-
-
+  mutate(cagrs = map(data, get_cagrs, all=TRUE))%>%
+  unnest(cagrs)%>%
+  mutate(current_employment=map_dbl(data, current_jobs))%>%
+  select(-data)
 
 # Job Openings---------------
-attach(JobOpenings_BC_Regions_Industry)
-# Subsetting out the All Industries data for BC
-`Job_Openings` <- subset(
-  JobOpenings_BC_Regions_Industry,
-  `Geographic Area` == "British Columbia" &
-    (Variable == "Job Openings") &
-    Industry == "All industries"
-)
-# Round values to nearest 10
-`Job_Openings`[, 7:16] <- lapply(`Job_Openings`[, 7:16], function(x) {
-  round(x, -1)
-})
-# Calculate the 10 year job openings
-`Job_Openings`$ten_year_job_openings <- apply(`Job_Openings`[, 7:16], 1, sum)
-# Replacement of Retiring Workers % & number-------------
-attach(JobOpenings_BC_Regions_Industry)
-# Subset out BC's replacement and expansion data for all industries
-BC_Expan_Replace <- JobOpenings_BC_Regions_Industry[
-  `Geographic Area` == "British Columbia" &
-    !Variable %in% c("Deaths", "Retirements", "Job Openings") &
-    Industry == "All industries",
-]
-BC_Expan_Replace$ten_year_sum <- round(apply(BC_Expan_Replace[7:16], 1, sum), -1)
-# Calculating the Replacement Percentage
-BC_Expan_Replace <- setDT(BC_Expan_Replace)[, `Replacement %` :=
-  round((ten_year_sum[Variable == "Replacement Demand"] /
-    (ten_year_sum[Variable == "Replacement Demand"] +
-      ten_year_sum[Variable == "Expansion Demand"])) * 100, 1),
-by = .(NOC)
-]
-BC_Expan_Replace <- setDT(BC_Expan_Replace)[, `Expansion %` :=
-  round((ten_year_sum[Variable == "Expansion Demand"] /
-    (ten_year_sum[Variable == "Replacement Demand"] +
-      ten_year_sum[Variable == "Expansion Demand"])) * 100, 1),
-by = .(NOC)
-]
-# Merge the replacement and expansion data with the main BC dataset----------
-BC <- merge(BC, BC_Expan_Replace[BC_Expan_Replace$Variable == "Replacement Demand", c(1, 17:19)], by = "NOC", all.x = TRUE)
-colnames(BC)[21] <- "ten_year_sum_Replace"
-BC <- merge(BC, BC_Expan_Replace[BC_Expan_Replace$Variable == "Expansion Demand", c(1, 17)], by = "NOC", all.x = TRUE)
-colnames(BC)[ncol(BC)] <- "ten_year_sum_Expan"
-# Changing the job openings column names
-colnames(`Job_Openings`)[c(6, 11, 16)] <- c(
-  paste0("JO_", current_year),
-  paste0("JO_", first_five_years),
-  paste0("JO_", second_five_years)
-)
-# Changing to column names
-BC <- merge(BC, `Job_Openings`[, c(1, 6, 11, 16, 17)],
-  by = "NOC",
-  all.x = TRUE
-)
-# Reordering the columns
-Provincial_Career_Profiles <- BC[, c(
-  "NOC",
-  "Description",
-  paste0(current_year, "-", first_five_years),
-  paste0(first_five_years, "-", second_five_years),
-  paste0("JO_", current_year),
-  paste0("JO_", first_five_years),
-  paste0("JO_", second_five_years),
-  "ten_year_job_openings",
-  "Replacement %",
-  "ten_year_sum_Replace",
-  "Expansion %",
-  "ten_year_sum_Expan",
-  current_year
-)]
-# Dealing NAN in replacement and expansion percentage columns
-# If the cell contains an NA then replace with zero
-Provincial_Career_Profiles$`Expansion %` <- ifelse(is.na(Provincial_Career_Profiles$`Expansion %`), 0, Provincial_Career_Profiles$`Expansion %`)
-Provincial_Career_Profiles$`Replacement %` <- ifelse(is.na(Provincial_Career_Profiles$`Replacement %`), 0, Provincial_Career_Profiles$`Replacement %`)
-# Dealing with the replacement and expansion percentages/values not adding up to 100
-# If the replacement % is above 100 then add the replacement % to the expansion % to make it 100
-Provincial_Career_Profiles$`Replacement %` <- ifelse(Provincial_Career_Profiles$`Replacement %` > 100, Provincial_Career_Profiles$`Replacement %` + Provincial_Career_Profiles$`Expansion %`, Provincial_Career_Profiles$`Replacement %`)
-# If expansion is less than zero then convert it to be zero
-Provincial_Career_Profiles$`Expansion %` <- ifelse(Provincial_Career_Profiles$`Expansion %` < 0, 0, Provincial_Career_Profiles$`Expansion %`)
-# Correcting the replacement sum when the expansion sum is negative
-Provincial_Career_Profiles$ten_year_sum_Replace <- ifelse(Provincial_Career_Profiles$ten_year_sum_Expan < 0 &
-  Provincial_Career_Profiles$`Replacement %` > 0, Provincial_Career_Profiles$ten_year_sum_Replace + Provincial_Career_Profiles$ten_year_sum_Expan, Provincial_Career_Profiles$ten_year_sum_Replace)
-# Now that the replacement sum has been corrected, the negative expansion sums can be corrected to zero
-Provincial_Career_Profiles$ten_year_sum_Expan <- ifelse(Provincial_Career_Profiles$ten_year_sum_Expan < 0, 0, Provincial_Career_Profiles$ten_year_sum_Expan)
-# If the expansion % is greater then 100 then change it to be 100
-Provincial_Career_Profiles$`Expansion %` <- ifelse(Provincial_Career_Profiles$`Expansion %` > 100, 0, Provincial_Career_Profiles$`Expansion %`)
-# If the replacement % is less then 0 then change it be zero
-Provincial_Career_Profiles$`Replacement %` <- ifelse(Provincial_Career_Profiles$`Replacement %` < 0, 100, Provincial_Career_Profiles$`Replacement %`)
-# Replace rows with current year employment less than 20 with NA
-Provincial_Career_Profiles[Provincial_Career_Profiles[, current_year] < 20, 3:12] <- "N/A"
-# Subsetting out the final columns needed
-Provincial_Career_Profiles <- Provincial_Career_Profiles[, c(
-  "NOC",
-  "Description",
-  paste0(current_year, "-", first_five_years),
-  paste0(first_five_years, "-", second_five_years),
-  paste0("JO_", current_year),
-  paste0("JO_", first_five_years),
-  paste0("JO_", second_five_years),
-  "ten_year_job_openings",
-  "Replacement %",
-  "ten_year_sum_Replace",
-  "Expansion %",
-  "ten_year_sum_Expan"
-)]
 
+job_openings <- job_openings_bc_regions_industry%>%
+  filter(geographic_area == "british_columbia",
+         industry == "all_industries")%>%
+  select(-geographic_area, -industry)%>%
+  pivot_longer(cols= -c(noc, description, variable),
+               names_to = "year", 
+               values_to = "value")%>%
+  mutate(value=round(value, -1))%>%
+  group_by(noc, description)%>%
+  nest()%>%
+  mutate(jo_select_years = map(data, jo_select),
+         ten_year_job_openings = map_dbl(data, ten_sum, "job_openings"),
+         ten_year_sum_expan = map_dbl(data, ten_sum, "expansion_demand"),
+         ten_year_sum_replace = map_dbl(data, ten_sum, "replacement_demand"),
+         `expansion_%` = round(ten_year_sum_expan/(ten_year_sum_expan+ten_year_sum_replace),3)*100,
+         `replacement_%` = 100-`expansion_%`
+         )%>%
+  select(-data)%>%
+  unnest(jo_select_years)
+
+provincial_career_profiles <- full_join(bc, job_openings, by = c("noc", "description"))%>%
+  relocate(`replacement_%`, .after = ten_year_job_openings)%>%
+  relocate(ten_year_sum_replace, .after = `replacement_%`)%>%
+  relocate(`expansion_%`, .after = ten_year_sum_replace)%>%
+  mutate(`expansion_%` = if_else(is.na(`expansion_%`), 0, `expansion_%`),
+         `replacement_%` = if_else(is.na(`replacement_%`), 0, `replacement_%`),
+         `expansion_%` = if_else(`expansion_%` < 0, 0,`expansion_%`),
+         ten_year_sum_replace = if_else(ten_year_sum_expan < 0 & `replacement_%` > 0, ten_year_sum_replace + ten_year_sum_expan, ten_year_sum_replace),
+         ten_year_sum_expan = if_else(ten_year_sum_expan < 0, 0, ten_year_sum_expan),
+         `expansion_%` = if_else(`expansion_%` > 100, 0, `expansion_%`),
+         `replacement_%` = if_else(`replacement_%` < 0, 100, `replacement_%`))%>%
+  mutate(across(where(is.numeric), ~ if_else(current_employment<20, NA_real_, .x)))%>%
+  select(-current_employment)
 
 # 3.3.1 CAREER PROFILE REGIONAL----------
 #' 1. Suppression rule:
 #'   If the current year's employment is below 20, then all variables should be changed to "N/A"
-# Initiating a list to contain all of the regional datasets
-regional_data_list <- list()
-count <- 1
-for (data in region_list) {
-  # Subsetting BC and All Industries
-  attach(Empl_BC_Regions_Industry)
-  assign(data, Empl_BC_Regions_Industry[`Geographic Area` == data & Industry == "All industries", ])
-}
-# Second loop to perform the calculations-----------
-for (data in region_list) {
-  # Calculating the average annual employment growth rate between different time periods
-  # Compound Average Annual Growth Rate
-  temp <- get(data)
-  paste0("avg_employ_growth_", current_year, "_", second_five_years)
-  temp[, paste0("avg_employ_growth_", current_year, "_", second_five_years)] <-
-    round(((temp[, second_five_years] /
-      temp[, current_year])^(1 / 10)) - 1, digits = 3) * 100
-  colnames(temp)[length(temp)] <- paste0(
-    data,
-    "_",
-    "avg_employ_growth_",
-    current_year,
-    "_",
-    second_five_years
-  )
-  # 10 Year job openings
-  attach(JobOpenings_BC_Regions_Industry)
-  temp2 <- JobOpenings_BC_Regions_Industry[`Geographic Area` == data &
-    Variable == "Job Openings" &
-    Industry == "All industries", ]
 
-  # Finding the 10 year sum of the job openings - sum of 2022 to 2031
-  temp2$ten_year_job_openings <- round(apply(temp2[, 7:16], 1, sum), -1)
-  # Adding a column name
-  colnames(temp2)[length(temp2)] <- paste0(data, "_ten_year_job_openings")
-  # Subsetting the data to keep just the NOC and ten year job openings
-  temp2 <- temp2[, c("NOC", paste0(data, "_ten_year_job_openings"))]
-  # merge the temp2 data to temp
-  temp <- merge(temp, temp2, by = "NOC", all.x = TRUE)
-  # Employment in 2021
-  attach(Empl_BC_Regions_Industry)
-  employ <- Empl_BC_Regions_Industry[`Geographic Area` == data & Industry == "All industries", ]
-  # Subsetting out the data for future merging
-  employ <- employ[, colnames(employ) %in% c("NOC", current_year)]
-  # Suppressing values less than 200
-  employ[employ[, current_year] < 20, current_year] <- NA
-  # Changing the column name (keep as index because the year will change)
-  colnames(employ)[2] <- paste0(data, "_Employment_", current_year)
-  # Round the employment data for the current year to the nearest 10th
-  employ[, paste0(data, "_Employment_", current_year)] <- round(employ[, paste0(data, "_Employment_", current_year)], -1)
-  # Merging the job openings and employment data
-  temp <- merge(temp, employ, by = "NOC", all.x = TRUE)
-  # Subsetting the final temp data and then placing it all into a list to be merged together
-  # Subsetting out the data for calculations
-  temp <- temp[, c(
-    "NOC",
-    "Description",
-    paste0(data, "_Employment_", current_year),
-    paste0(data, "_", "avg_employ_growth_", current_year, "_", second_five_years),
-    paste0(data, "_ten_year_job_openings")
-  )]
-  # If an NA exists in the ten year employment then make sure all rows contain NA as well
-  temp[
-    apply(is.na(temp[, c(
-      paste0(data, "_Employment_", current_year),
-      paste0(data, "_", "avg_employ_growth_", current_year, "_", second_five_years),
-      paste0(data, "_ten_year_job_openings")
-    )]), 1, any),
-    c(
-      paste0(data, "_Employment_", current_year),
-      paste0(data, "_", "avg_employ_growth_", current_year, "_", second_five_years),
-      paste0(data, "_ten_year_job_openings")
-    )
-  ] <- "N/A"
+regions <- empl_bc_regions_industry%>%
+  filter(industry == "all_industries")%>%
+  select(-industry, -variable)%>%
+  pivot_longer(cols= -c(noc, description, geographic_area),
+               names_to = "year", 
+               values_to = "value")%>%
+  mutate(value=round(value, -1))%>%
+  group_by(noc, description, geographic_area)%>%
+  nest()%>%
+  mutate(employment = map_dbl(data, current_jobs),
+    "avg_employ_growth_{current_year}_{second_five_years}" := map_dbl(data, get_cagrs, all=FALSE))%>%
+  select(-data)
 
-  if (count == 1) {
-    maindf <- temp
-  } else {
-    maindf <- merge(maindf, temp, by = c("NOC", "Description"))
-  }
-  count <- count + 1
-}
-# end of Second loop to perform the calculations-----------
-Career_Profile_Regional <- maindf
-# Removing ten_year_employ columns
-Career_Profile_Regional <- Career_Profile_Regional[, !grepl("ten_year_employ", colnames(Career_Profile_Regional))]
+regional_openings <- job_openings_bc_regions_industry%>%
+  filter(industry == "all_industries")%>%
+  select(-industry)%>%
+  pivot_longer(cols= -c(noc, description, variable, geographic_area),
+               names_to = "year", 
+               values_to = "value")%>%
+  mutate(value=round(value, -1))%>%
+  group_by(noc, description, geographic_area)%>%
+  nest()%>%
+  mutate(ten_year_job_openings = map_dbl(data, ten_sum, "job_openings"))%>%
+  select(-data)
+
+id_cols=c("noc", "description", "geographic_area")
+career_profile_regional <- full_join(regions,
+  regional_openings,
+  by = c("noc", "description", "geographic_area")) %>%
+  arrange(geographic_area)%>%
+  mutate(across(where(is.numeric), ~ if_else(employment < 20, NA_real_, .x)))%>%
+  rename("employment_{current_year}" := employment)%>%
+pivot_wider(names_from = geographic_area, 
+              values_from = -all_of(id_cols),
+              names_glue = "{geographic_area}_{.value}",
+              names_vary = "slowest")%>%
+  select(!contains("british_columbia"), everything())
+
+
+
+
+
 
 # 3.3.2 INDUSTRY PROFILE-------------
 geo <- "British Columbia"
