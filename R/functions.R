@@ -1,3 +1,78 @@
+make_clean_factor <- function(strng) {
+  strng %>%
+    str_replace_all("\t", "") %>%
+    trimws() %>%
+    str_to_lower() %>%
+    str_replace_all(" ", "_") %>%
+    factor()
+}
+# takes a tibble, converts column names to camel_case, and converts character columns to clean factors.
+clean_tbbl <- function(tbbl) {
+  tbbl <- tbbl %>%
+    mutate(across(where(is.character), make_clean_factor))
+  colnames(tbbl) <- if_else(sapply(colnames(tbbl), is.numeric),
+                            colnames(tbbl),
+                            str_to_lower(str_replace_all(colnames(tbbl)," ","_"))
+  ) 
+  tbbl  
+}
+
+get_cagrs <- function(tbbl, all){
+  current_value <- tbbl%>%
+    filter(year == current_year)%>%
+    pull(value)
+  ten_value <- tbbl%>%
+    filter(year == second_five_years)%>%
+    pull(value)
+  ty_cagr <- round((ten_value/current_value)^(.1)-1, 3)*100
+  if(all==TRUE){
+    five_value <- tbbl%>%
+      filter(year == first_five_years)%>%
+      pull(value)
+    ff_cagr <- round((five_value/current_value)^(.2)-1, 3)*100
+    sf_cagr <- round((ten_value/five_value)^(.2)-1, 3)*100
+    tibble("{current_year}-{first_five_years}" := ff_cagr, 
+           "{first_five_years}-{second_five_years}" := sf_cagr, 
+           "{current_year}-{second_five_years}" := ty_cagr)
+  }else{
+    ty_cagr 
+  }
+}
+
+ten_sum <- function(tbbl, var){
+  tbbl%>%
+    filter(year>current_year,
+           year<=second_five_years,
+           variable == var)%>%
+    summarize(sum(value))%>%
+    pull()
+}
+
+jo_select <- function(tbbl){
+  current_jo <- tbbl%>%
+    filter(variable=="job_openings",
+           year==current_year)%>%
+    pull(value)
+  five_jo <- tbbl%>%
+    filter(variable=="job_openings",
+           year==first_five_years)%>%
+    pull(value)
+  ten_jo <- tbbl%>%
+    filter(variable=="job_openings",
+           year==first_five_years)%>%
+    pull(value)
+  tibble("jo_{current_year}" := current_jo, 
+         "jo_{first_five_years}" := five_jo, 
+         "jo_{second_five_years}" := ten_jo)
+}
+
+current_jobs <- function(tbbl){
+  tbbl%>%
+    filter(year==current_year)%>%
+    pull(value)
+}
+
+
 CAGR = function(data){
   
   data[, paste0(current_year, "-", first_five_years)] = 
@@ -24,7 +99,8 @@ write_workbook = function(data, sheetname, startrow, startcol){
   )
 }
 
-#61 industries. Make sure that all names are the same names in the in 4CastViewer data sets, industry profiles excel sheet and this code (look for extra spaces). 
+#'61 industries. Make sure that all names are the same names in the in 4CastViewer data sets,
+#' industry profiles excel sheet and this code (look for extra spaces). 
 #Calculate the values for the LMO aggregate industries
 aggregate_industries = function(data){
   
