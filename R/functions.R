@@ -39,27 +39,27 @@ get_cagrs <- function(tbbl, all){
   }
 }
 
-ten_sum <- function(tbbl, var){
+ten_sum <- function(tbbl, var = NULL){
+  if(!is.null(var)) tbbl <- tbbl %>% filter(variable == var)
   tbbl%>%
-    filter(year>current_year,
-           year<=second_five_years,
-           variable == var)%>%
+    filter(year > current_year,
+           year <= second_five_years)%>%
     summarize(sum(value))%>%
     pull()
 }
 
 jo_select <- function(tbbl){
   current_jo <- tbbl%>%
-    filter(variable=="job_openings",
-           year==current_year)%>%
+    filter(variable == "job_openings",
+           year == current_year)%>%
     pull(value)
   five_jo <- tbbl%>%
-    filter(variable=="job_openings",
-           year==first_five_years)%>%
+    filter(variable == "job_openings",
+           year == first_five_years)%>%
     pull(value)
   ten_jo <- tbbl%>%
-    filter(variable=="job_openings",
-           year==first_five_years)%>%
+    filter(variable == "job_openings",
+           year == first_five_years)%>%
     pull(value)
   tibble("jo_{current_year}" := current_jo, 
          "jo_{first_five_years}" := five_jo, 
@@ -71,6 +71,44 @@ current_jobs <- function(tbbl){
     filter(year==current_year)%>%
     pull(value)
 }
+
+aggregate_by_year <- function(tbbl){
+  tbbl%>%
+    group_by(year)%>%
+    summarize(value=sum(value))
+}
+
+get_shares <- function(tbbl){
+  current_share <- tbbl[tbbl$year==current_year, "value"]/tot_emp[tot_emp$year==current_year, "value"]
+  ff_share <- tbbl[tbbl$year==first_five_years, "value"]/tot_emp[tot_emp$year==first_five_years, "value"]
+  sf_share <- tbbl[tbbl$year==second_five_years, "value"]/tot_emp[tot_emp$year==second_five_years, "value"]
+  tibble(
+    "{current_year}_share_of_employment":=round(pull(current_share),3)*100,
+    "{first_five_years}_share_of_employment":=round(pull(ff_share),3)*100,
+    "{second_five_years}_share_of_employment":=round(pull(sf_share),3)*100,
+  )  
+}
+get_values <- function(tbbl, short_names = FALSE){
+  current <- pull(tbbl[tbbl$year==current_year, "value"])
+  ff <- pull(tbbl[tbbl$year==first_five_years, "value"])
+  sf <- pull(tbbl[tbbl$year==second_five_years, "value"])
+  if(short_names==FALSE){
+    tibble(
+      "{current_year}_forecasted_employment" := current,
+      "{first_five_years}_forecasted_employment" := ff,
+      "{second_five_years}_forecasted_employment" := sf
+    )
+  }else{
+    tibble(
+      "{current_year}" := current,
+      "{first_five_years}" := ff,
+      "{second_five_years}" := sf
+    )
+  }
+}
+
+
+
 
 
 CAGR = function(data){
