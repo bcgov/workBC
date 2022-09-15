@@ -1,36 +1,38 @@
 [![Lifecycle:Experimental](https://img.shields.io/badge/Lifecycle-Experimental-339999)](<Redirect-URL>)
 
-### Usage
+### Usage:
 
- ## Procedure:
- 
- 1. Place files whose names contain the following strings in folder "Data Sources".  
- Note that the actual file names will likely contain dates so the script pattern matches on the following strings. 
- 
- -  newtemplate
- -  Empl_BC_Regions_Industry
- -  Industry_Profiles
- -  JobOpenings_BC_Regions_Industry
- -  BC_Unemployment_rate
- 
- 2. Ensure that folder "templates" contains the following files
- 
- -  "3.3.1_WorkBC_Career_Profile_Data.xlsx" 
- -  "3.3.2_WorkBC_Industry_Profile.xlsx"               
- -  "3.3.3_WorkBC_Regional_Profile_Data.xlsx" 
- -  "3.4_WorkBC_Career_Compass.xlsx"                   
- -  "3.5_WorkBC_Career_Trek.xlsx"                      
- -  "3.7_WorkBC_Buildprint_Builder.xlsx"   
+#### Before sourcing file:
 
- 3. Source file "01_source_me.R"
+ 1. Ensure that the following (updated) files are in folder raw_data:
+ 
+-     occupational_characteristics
+-     hoo_list
+-     pop_municipal
+-     career_trek_jobs
+-     lmo64_characteristics
+-     empl_bc_regions_industry
+-     job_openings_bc_regions_industry
+-     unemployment_rate
+-     career_search_tool_job_openings
+-     wages
+ 
+ 2.  Ensure that the following files are in folder templates: (request updated versions from WorkBC)
+ 
+-     3.3.1_WorkBC_Career_Profile_Data.xlsx
+-     3.3.2_WorkBC_Industry_Profile.xlsx
+-     3.3.3_WorkBC_Regional_Profile_Data.xlsx
+-     3.4_WorkBC_Career_Compass.xlsx
+-     3.5_WorkBC_Career_Trek.xlsx
+-     3.7_WorkBC_Buildprint_Builder.xlsx
+-     BC Population Distribution.xlsx
+-     Career Search Tool Job Openings.xlsx
+-     HOO BC and Region for new tool.xlsx
+-     HOO List.xlsx
+ 
+3. Source file "01_source_me.R"
 
-4. Product can be found in folder "Send to WorkBC"
-
- Previous Richard's Notes:
- The data for this project was downloaded from the 4CastViewer. The datasets for performing the analysis are in wide format.
- We recently received a new 4CastViewer tool which allows you to download the data in long format.
- Be aware that you'll have to change the dataset names in the "DATA CLEANING" section because it picks up the data source names in the "Data Sources" folder.
- Check with WorkBC that all the templates are updated (Sr No and career job titles)
+4. Output files can be found in folder "processed_data"
 
 ### Getting Help or Reporting an Issue
 
