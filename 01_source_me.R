@@ -37,7 +37,7 @@
 #' Career Search Tool Job Openings.xlsx
 #' HOO BC and Region for new tool.xlsx
 #' HOO List.xlsx
-
+tictoc::tic()
 # LIBRARIES--------------
 library("tidyverse")
 library("readxl")
@@ -755,3 +755,4 @@ openxlsx::saveWorkbook(workbook, here(
 ),
 overwrite = TRUE
 )
+tictoc::toc()
