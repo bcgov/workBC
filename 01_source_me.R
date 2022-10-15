@@ -307,6 +307,7 @@ industry_profile <- industry_profile %>%
   select(-data) %>%
   filter(aggregate_industry != "all_industries") %>%
   rename(industry = aggregate_industry) %>%
+  filter(industry!="all")%>%
   arrange(industry) %>%
   camel_to_title()
 
@@ -623,8 +624,8 @@ top_hoo_by_educ <- left_join(whos_hoo_bc, wages_bc, by = "noc") %>%
 
 # add some text to top of HOO list sheet
 counts <- top_hoo_by_educ %>%
-  janitor::tabyl(typical_education_background) %>%
-  summarize(smushed = paste0(n, " ", typical_education_background, "; ", collapse = "")) %>%
+  janitor::tabyl(typical_education_background)%>%
+  summarize(smushed = paste0(n, " ", typical_education_background, "; ", collapse = ""))%>%
   mutate(
     smushed = str_replace_all(smushed, "_", " "),
     smushed = str_to_title(smushed),
