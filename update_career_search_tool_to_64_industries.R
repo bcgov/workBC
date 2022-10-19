@@ -1,3 +1,20 @@
+library("tidyverse")
+library("readxl")
+library("XLConnect")
+library("here")
+library("lubridate")
+source(here("R", "functions.R"))
+# "Constants"----------
+current_year <- as.numeric(year(today()))
+previous_year <- current_year - 1
+current_plus_5 <- current_year + 5
+current_plus_10 <- current_year + 10
+
+industry_mapping <- read_csv(here("raw_data", list.files(here("raw_data"), pattern = "lmo64_characteristics"))) %>%
+  select(industry = lmo_detailed_industry, aggregate_industry) %>%
+  distinct()%>%
+  rbind(c("all_industries", "all"))
+
 cstjo_old <- read_excel(here("raw_data","archive","Career Search Tool Job Openings(61).xlsx"))%>%
   mutate(Region=str_replace(Region, "All", "british_columbia"),
          Region=str_replace(Region, "Mainland / Southwest", "mainland_south_west"),

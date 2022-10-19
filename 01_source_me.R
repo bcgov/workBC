@@ -283,6 +283,24 @@ career_profile_regional_excel <- career_profile_regional %>%
 
 # 3.3.2 INDUSTRY PROFILE-------------
 # This is the "by aggregate_industry" breakdown of the labour market.
+
+jo_by_industry <- long %>%
+  filter(
+    year>current_year,
+    geographic_area == "british_columbia",
+    description == "total"
+  ) %>%
+  select(-geographic_area, -description) %>%
+  group_by(aggregate_industry) %>%
+  nest() %>%
+  mutate(data = map(data, aggregate_by_year, "job_openings"))%>%
+  unnest(data)%>%
+  summarize(job_openings=sum(value))%>%
+  rename(industry = aggregate_industry) %>%
+  filter(industry!="all")%>%
+  arrange(industry) %>%
+  camel_to_title()
+
 industry_profile <- long %>%
   filter(
     geographic_area == "british_columbia",
@@ -311,6 +329,7 @@ industry_profile <- industry_profile %>%
   arrange(industry) %>%
   camel_to_title()
 
+industry_profile <- inner_join(jo_by_industry, industry_profile)
 
 # 3.3.3 REGIONAL PROFILE - REGIONAL PROFILES LMO-------------
 # COMPOSITION OF JOB OPENINGS SECTION - REGIONAL PROFILES LMO
