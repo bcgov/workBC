@@ -541,7 +541,7 @@ pop_summary <- pop %>%
   summarize(`2021` = max(`2021`)) %>% # kootenay is both a region and a subregion... this gets the pop for the region.
   arrange(desc(Name))
 
-# top 5 careers by aggregate industry----------------
+# top 10 careers by aggregate industry----------------
 
 long_emp_current_bc <- long_emp %>%
   filter(
@@ -555,7 +555,7 @@ long_emp_current_bc <- long_emp %>%
 emp_current_with_agg <- long_emp_current_bc %>%
   full_join(mapping, by = "industry") %>%
   group_by(aggregate_industry) %>%
-  slice_max(value, n = 5, with_ties = FALSE) %>%
+  slice_max(value, n = 10, with_ties = FALSE) %>%
   mutate(value = round(value, 0)) %>%
   arrange(desc(aggregate_industry)) %>%
   select(
@@ -741,7 +741,7 @@ saveWorkbook(wb, here("processed_data", paste0(current_year - 1, " BC Population
 # export top 5 careers by aggregate industry
 openxlsx::write.xlsx(emp_current_with_agg, here(
   "processed_data",
-  paste(current_year, "top_5_careers_by_aggregate_industry.xlsx")
+  paste(current_year, "top_10_careers_by_aggregate_industry.xlsx")
 ))
 
 # export HOO BC and Region for new tool
