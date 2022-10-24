@@ -149,6 +149,7 @@ long_jo <- pl_wrap(job_openings_bc_regions_industry)
 long_un <- pl_wrap(lmo_work_bc_unemployment)
 industry_mapping <- mapping %>%
   rbind(c("all_industries", "all"))
+
 long <- bind_rows(long_emp, long_jo) %>%
   mutate(value = round(value, -1)) %>% # employment and job openings data rounded to nearest 10
   bind_rows(long_un) %>% # unemployment rates NOT rounded
@@ -553,8 +554,10 @@ long_emp_current_bc <- long_emp %>%
   select(-variable, -year, -geographic_area)
 
 emp_current_with_agg <- long_emp_current_bc %>%
-  full_join(mapping, by = "industry") %>%
-  group_by(aggregate_industry) %>%
+  full_join(mapping, by = "industry")%>%
+  group_by(aggregate_industry, noc, description)%>% 
+  summarise(value=sum(value))%>% #aggregates data at industry level to aggregate industry level
+  group_by(aggregate_industry, .add=FALSE)%>% #to get top 10 by aggregate industry
   slice_max(value, n = 10, with_ties = FALSE) %>%
   mutate(value = round(value, 0)) %>%
   arrange(desc(aggregate_industry)) %>%
@@ -738,7 +741,7 @@ write_workbook(pop_summary, "Region Population Estimates", 3, 1)
 write_workbook(pop, "Regional District Population", 5, 1)
 saveWorkbook(wb, here("processed_data", paste0(current_year - 1, " BC Population Distribution.xlsx")))
 
-# export top 5 careers by aggregate industry
+# export top 10 careers by aggregate industry
 openxlsx::write.xlsx(emp_current_with_agg, here(
   "processed_data",
   paste(current_year, "top_10_careers_by_aggregate_industry.xlsx")
