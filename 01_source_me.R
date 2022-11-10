@@ -514,7 +514,7 @@ lmo_career_compass <- long %>%
 # 3.5 CAREER TREK-----------
 career_trek_merged <- lmo_career_compass %>%
   select(-contains("unemployment"), -contains("jo_")) %>%
-  right_join(career_trek, by = c("noc" = "noc", "description" = "noc_title")) %>%
+  right_join(career_trek, by = c("noc" = "noc", "description" = "noc_title"), multiple = "all")%>% #NOC #0124 not unique in career_trek
   camel_to_title() %>%
   select(
     sr_no,
@@ -646,7 +646,9 @@ top_hoo_by_educ <- left_join(whos_hoo_bc, wages_bc, by = "noc") %>%
 
 # add some text to top of HOO list sheet
 counts <- top_hoo_by_educ %>%
-  janitor::tabyl(typical_education_background)%>%
+  group_by(typical_education_background)%>%
+  count()%>%
+  ungroup()%>%
   summarize(smushed = paste0(n, " ", typical_education_background, "; ", collapse = ""))%>%
   mutate(
     smushed = str_replace_all(smushed, "_", " "),
