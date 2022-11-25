@@ -59,7 +59,7 @@ source(here("R", "functions.R"))
 occ_char <- read_excel(here("raw_data", list.files(here("raw_data"), pattern = "occupational_characteristics")), skip = 3) %>%
   rename(typical_education_background = starts_with("Typical")) %>%
   mutate(typical_education_background = str_replace(typical_education_background, "Excluding Apprenticeship", "")) %>%
-  clean_tbbl() %>%
+  clean_tbbl()%>%
   select(
     noc = noc_2016,
     typical_education_background = starts_with("typical"),
@@ -70,6 +70,11 @@ occ_char <- read_excel(here("raw_data", list.files(here("raw_data"), pattern = "
     third = skill3,
     typical_education_background = starts_with("typical")
   )
+
+trades_nocs <- read_excel(here("raw_data", "Occupational Characteristics based on LMO 2022E 2022-Sept.xlsx"), skip = 3)%>%
+  clean_tbbl()%>%
+  filter(`occ_group:_trades`=="trades")%>%
+  select(noc=noc_2016, trade=description)
 
 whos_hoo <- read_excel(here("raw_data", list.files(here("raw_data"), pattern = "hoo_list"))) %>%
   clean_tbbl() %>%
@@ -151,9 +156,27 @@ industry_mapping <- mapping %>%
   rbind(c("all_industries", "all"))
 
 long <- bind_rows(long_emp, long_jo) %>%
-  mutate(value = round(value, -1)) %>% # employment and job openings data rounded to nearest 10
+#  mutate(value = round(value, -1)) %>% # employment and job openings data rounded to nearest 10
   bind_rows(long_un) %>% # unemployment rates NOT rounded
   full_join(industry_mapping, by = "industry")
+
+# top trades (for amber)-----------
+
+top_trades <- long%>%
+  right_join(trades_nocs)%>%
+  filter(year>2022,
+         geographic_area=="british_columbia",
+         aggregate_industry=="all",
+         variable=="job_openings")%>%
+  group_by(noc, trade)%>%
+  summarize(job_openings=round(sum(value), -1))%>%
+  ungroup()%>%
+  top_n(job_openings, n = 15)%>%
+  arrange(desc(job_openings))%>%
+  camel_to_title()
+
+write_csv(top_trades, here("processed_data","top_trades.csv"))
+
 
 # Career Search Tool Job Openings
 current_jo <- long_jo %>%
@@ -361,7 +384,7 @@ composition_job_openings <- long %>%
   arrange(geographic_area)
 
 # EMPLOYMENT OUTLOOK SECTION - REGIONAL PROFILES LMO
-# This is a "by geographic_area" breakdown of employment and job openings.
+# This is a "by geographic_area" breakdown of employment and job openings. (requested by lisa)
 employment_outlook <- long %>%
   filter(
     industry == "all_industries",
@@ -370,7 +393,8 @@ employment_outlook <- long %>%
   select(-industry, -description) %>%
   group_by(geographic_area) %>%
   nest() %>%
-  mutate(ten_year_cagr = map_dbl(data, get_cagrs, "employment", all = FALSE)) %>%
+  mutate(cagr = map(data, get_cagrs, "employment", all = TRUE)) %>%
+  unnest(cagr, names_sep = "_")%>%
   mutate(
     employment = map(data, current_5_10, "employment"),
     ten_sum_jo = map_dbl(data, ten_sum, "job_openings")
@@ -378,6 +402,9 @@ employment_outlook <- long %>%
   unnest(employment, names_sep = "_") %>%
   select(-data) %>%
   camel_to_title()
+
+write_csv(employment_outlook, here::here("processed_data","for_lisa.csv"))
+
 
 # join composition_job_openings with employment outlook
 jo_and_eo <- full_join(composition_job_openings,
@@ -394,7 +421,7 @@ jo_and_eo <- full_join(composition_job_openings,
     employment_five,
     employment_ten,
     ten_sum_jo,
-    ten_year_cagr
+    cagr_ten_year
   )
 
 # 3.3.3 REGIONAL PROFILE - TOP 10 INDUSTRIES---------------
