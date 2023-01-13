@@ -37,6 +37,9 @@
 #' Career Search Tool Job Openings.xlsx
 #' HOO BC and Region for new tool.xlsx
 #' HOO List.xlsx
+#' 
+#'  CHANGE current_year BELOW
+#' 
 tictoc::tic()
 # LIBRARIES--------------
 library("tidyverse")
