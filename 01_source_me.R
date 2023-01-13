@@ -46,7 +46,7 @@ library("here")
 library("lubridate")
 
 # "Constants"----------
-current_year <- as.numeric(year(today()))
+current_year <- 2022
 previous_year <- current_year - 1
 current_plus_5 <- current_year + 5
 current_plus_10 <- current_year + 10
@@ -242,30 +242,39 @@ provincial_career_profiles <- long %>%
     cagr = map(data, get_cagrs, "employment", all = TRUE),
     current_employment = map_dbl(data, current_value, "employment"),
     jo = map(data, current_5_10, "job_openings"),
-    ten_year_job_openings = map_dbl(data, ten_sum, "job_openings"),
-    ten_year_sum_expan = map_dbl(data, ten_sum, "expansion_demand"),
-    ten_year_sum_replace = map_dbl(data, ten_sum, "replacement_demand"),
-    expansion_percent = round(ten_year_sum_expan / (ten_year_sum_expan + ten_year_sum_replace), 3) * 100,
-    replacement_percent = 100 - expansion_percent
+    ten_year_job_openings = map_dbl(data, ten_sum, "job_openings",3),
+    ten_year_sum_expan = map_dbl(data, ten_sum, "expansion_demand",3),
+    ten_year_sum_replace = map_dbl(data, ten_sum, "replacement_demand",3),
+    expansion_percent = round(ten_year_sum_expan / (ten_year_job_openings), 3) * 100,
+    expansion_percent = case_when(expansion_percent > 100 ~ 100,
+                                  expansion_percent < 0 ~ 0,
+                                  TRUE ~ expansion_percent),
+    replacement_percent = round(ten_year_sum_replace / (ten_year_job_openings), 3) * 100,
+    replacement_percent = case_when(replacement_percent > 100 ~ 100,
+                                  replacement_percent < 0 ~ 0,
+                                  TRUE ~ replacement_percent)
   ) %>%
-  select(-data) %>%
+  select(-data)%>%
   unnest(jo, names_sep = "_") %>%
   unnest(cagr, names_sep = "_") %>%
   relocate(replacement_percent, .after = ten_year_job_openings) %>%
   relocate(ten_year_sum_replace, .after = replacement_percent) %>%
-  relocate(expansion_percent, .after = ten_year_sum_replace) %>%
-  mutate(
-    expansion_percent = if_else(is.na(expansion_percent), 0, expansion_percent),
-    replacement_percent = if_else(is.na(replacement_percent), 0, replacement_percent),
-    expansion_percent = if_else(expansion_percent < 0, 0, expansion_percent),
-    ten_year_sum_replace = if_else(ten_year_sum_expan < 0 & replacement_percent > 0, ten_year_sum_replace + ten_year_sum_expan, ten_year_sum_replace),
-    ten_year_sum_expan = if_else(ten_year_sum_expan < 0, 0, ten_year_sum_expan),
-    expansion_percent = if_else(expansion_percent > 100, 0, expansion_percent),
-    replacement_percent = if_else(replacement_percent < 0, 100, replacement_percent)
-  ) %>%
-  mutate(across(where(is.numeric), ~ if_else(current_employment < 20, NA_real_, .x))) %>%
+  relocate(expansion_percent, .after = ten_year_sum_replace)%>%
+  # mutate(
+  #    expansion_percent = if_else(is.na(expansion_percent), 0, expansion_percent),
+  #    replacement_percent = if_else(is.na(replacement_percent), 0, replacement_percent),
+  #    expansion_percent = if_else(expansion_percent < 0, 0, expansion_percent),
+  #    ten_year_sum_replace = if_else(ten_year_sum_expan < 0 & replacement_percent > 0, ten_year_sum_replace + ten_year_sum_expan, ten_year_sum_replace),
+  #    ten_year_sum_expan = if_else(ten_year_sum_expan < 0, 0, ten_year_sum_expan),
+  #    expansion_percent = if_else(expansion_percent > 100, 0, expansion_percent),
+  #    replacement_percent = if_else(replacement_percent < 0, 100, replacement_percent)
+  # ) %>%
+  mutate(across(where(is.numeric), ~ if_else(current_employment < 20, NA_real_, .x)),
+         across(contains("ten_year_"), ~round(.x,-1))) %>%
   select(-current_employment, -cagr_ten_year) %>%
   camel_to_title()
+
+
 
 # 3.3.1 CAREER PROFILE REGIONAL----------
 #' This is the "by NOC and geographic_area" breakdown of the labour market.
@@ -517,7 +526,7 @@ lmo_career_compass <- long %>%
   mutate(
     ten_year_job_openings = map_dbl(data, ten_sum, "job_openings"),
     jo = map(data, current_5_10, "job_openings"),
-    unemployment = map(data, current_5_10, "unemployment_rate"),
+    unemployment = map(data, current_5_10, "unemployment_rate", round_to=1),
     cagr = map(data, get_cagrs, "employment", all = TRUE)
   ) %>%
   unnest(cagr, names_sep = "_") %>%
@@ -578,6 +587,7 @@ long_emp_current_bc <- long_emp %>%
     noc != "#t",
     industry != "all_industries"
   ) %>%
+ # mutate(value=round(value,-1))%>%
   select(-variable, -year, -geographic_area)
 
 emp_current_with_agg <- long_emp_current_bc %>%
@@ -606,7 +616,7 @@ ten_year_jo <- long_jo %>%
     year > current_year
   ) %>%
   group_by(noc, geographic_area) %>%
-  summarize(job_openings = round(sum(value), 0))
+  summarize(job_openings = round(sum(value), -1))
 
 hoo_new_tool <- left_join(whos_hoo, wages_bc, by = "noc") %>%
   left_join(ten_year_jo) %>%
@@ -644,7 +654,7 @@ ten_year_jo_bc <- long_jo %>%
     geographic_area == "british_columbia"
   ) %>%
   group_by(noc) %>%
-  summarize(job_openings = round(sum(value), 0))
+  summarize(job_openings = round(sum(value), -1))
 
 top_hoo_by_educ <- left_join(whos_hoo_bc, wages_bc, by = "noc") %>%
   left_join(ten_year_jo_bc) %>%

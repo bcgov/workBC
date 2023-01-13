@@ -45,14 +45,14 @@ get_cagrs <- function(tbbl, var, all) {
   }
 }
 # for a given variable calculate the ten year sum of the value.  Returns a vector
-ten_sum <- function(tbbl, var) {
-  sum(pull(tbbl[tbbl$variable == var & tbbl$year > current_year & tbbl$year <= current_plus_10, "value"]))
+ten_sum <- function(tbbl, var, round_to=-1) {
+  round(sum(pull(tbbl[tbbl$variable == var & tbbl$year > current_year & tbbl$year <= current_plus_10, "value"])), round_to)
 }
 # for a given variable selects out the current, 5 and 10 year values.
-current_5_10 <- function(tbbl, var) {
-  current <- pull(tbbl[tbbl$variable == var & tbbl$year == current_year, "value"])
-  five <- pull(tbbl[tbbl$variable == var & tbbl$year == current_plus_5, "value"])
-  ten <- pull(tbbl[tbbl$variable == var & tbbl$year == current_plus_10, "value"])
+current_5_10 <- function(tbbl, var, round_to=-1) {
+  current <- round(pull(tbbl[tbbl$variable == var & tbbl$year == current_year, "value"]), round_to)
+  five <- round(pull(tbbl[tbbl$variable == var & tbbl$year == current_plus_5, "value"]), round_to)
+  ten <- round(pull(tbbl[tbbl$variable == var & tbbl$year == current_plus_10, "value"]), round_to)
   tibble(
     current,
     five,
@@ -61,7 +61,7 @@ current_5_10 <- function(tbbl, var) {
 }
 # for a given variable get the current value
 current_value <- function(tbbl, var) {
-  pull(tbbl[tbbl$variable == var & tbbl$year == current_year, "value"])
+  round(pull(tbbl[tbbl$variable == var & tbbl$year == current_year, "value"]),-1)
 }
 
 # for a given variable aggregate the value by year.
@@ -69,7 +69,7 @@ aggregate_by_year <- function(tbbl, var) {
   tbbl <- tbbl[tbbl$variable == var, ]
   tbbl %>%
     group_by(year) %>%
-    summarize(value = sum(value)) %>%
+    summarize(value = round(sum(value),-1)) %>%
     mutate(variable = var)
 }
 # for a given variable calculate the current, five year and ten year shares of total employment
@@ -129,6 +129,9 @@ add_foot_head2 <- function(tbbl, hdr, num_col){
 add_header <- function(tbbl, var){
   header <- c(paste("Typical education background:",{{  var  }}),"","","","","","","")
   rbind(header, tbbl)
+}
+smush_names <- function(tbbl){
+  paste(tbbl$trade, collapse="/ ")
 }
 # Function to quickly export data
 write_workbook <- function(data, sheetname, startrow, startcol) {
